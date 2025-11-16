@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Canteen Portal</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f3f4f6; margin:0; padding:20px; }
+    .container { max-width:1100px; margin:0 auto; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    header h1 { margin:0; font-size:20px; }
+    .card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.04); margin-bottom:12px; border:1px solid #e6eaf0; }
+    .login { max-width:420px; margin:40px auto; }
+    label { display:block; margin-top:8px; font-size:14px; color:#333; }
+    input[type="text"], input[type="password"], input[type="month"] { width:100%; padding:8px 10px; margin-top:6px; border-radius:6px; border:1px solid #d1d5db; box-sizing:border-box; }
+    button { padding:10px 14px; border-radius:8px; border:0; background:#0d6efd; color:#fff; cursor:pointer; }
+    .smallBtn { padding:6px 8px; border-radius:6px; border:0; background:#2563eb; color:#fff; cursor:pointer; }
+    .dangerBtn { background:#ef4444; color:#fff; border:0; padding:6px 8px; border-radius:6px; }
+    nav.tabs { display:flex; gap:8px; margin-bottom:12px; }
+    .tab { padding:8px 12px; background:#fff; border-radius:8px; cursor:pointer; border:1px solid #e6eaf0; }
+    .tab.active { background:#0d6efd; color:#fff; }
+    .tabContent { display:none; }
+    .tabContent.active { display:block; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; }
+    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; font-size:14px; }
+    .muted { color:#6b7280; font-size:13px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    #statusBar { margin-top:8px; color:#065f46; font-weight:600; display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Smart Canteen Portal</h1>
+      <div id="userArea">
+        <span id="userName">Not logged in</span>
+        <button id="logoutBtn" onclick="logout()" style="margin-left:12px; display:none;">Logout</button>
+      </div>
+    </header>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form" class="card login">
+      <h2>Sign in</h2>
+      <label for="email">Email</label>
+      <input id="email" type="text" placeholder="you@college.edu" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="password" />
+      <div style="margin-top:12px;">
+        <button onclick="login()">Login</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD (hidden until login) -->
+    <div id="dashboard" style="display:none;">
+      <div class="card" id="topCard">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="muted">Logged in as</div>
+            <div id="userEmail" style="font-weight:600"></div>
+            <div id="monthlyReport" style="margin-top:8px;" class="muted"></div>
+          </div>
+          <div>
+            <button onclick="fetchBills()" style="margin-right:8px">Refresh</button>
+            <button id="logoutVisibleBtn" onclick="logout()">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="tabs">
+        <div class="tab active" data-target="tab-home">Home</div>
+        <div class="tab" data-target="tab-verify">Payments to Verify</div>
+        <div class="tab" data-target="tab-monthly">Monthly Breakdown</div>
+        <div class="tab" data-target="tab-all">All Bills</div>
+      </nav>
+
+      <!-- HOME -->
+      <div id="tab-home" class="tabContent active">
+        <div class="card">
+          <h3>Recent Bills</h3>
+          <div id="billTable">Loading...</div>
+        </div>
+      </div>
+
+      <!-- PAYMENTS TO VERIFY -->
+      <div id="tab-verify" class="tabContent">
+        <div class="card">
+          <h3>Payments awaiting admin verification</h3>
+          <p class="muted">Grouped by user & month. Use Verify to finalize payments or Mark Pending to revert.</p>
+          <table id="ppvTable" style="width:100%">
+            <thead><tr><th>User</th><th>Amount</th><th>Month</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td colspan="4">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MONTHLY BREAKDOWN -->
+      <div id="tab-monthly" class="tabContent">
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3>Monthly Breakdown</h3>
+            <p class="muted">Select month to view totals and verify pending payments.</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="margin:0;">Choose month</label>
+            <input id="monthPick" type="month" />
+          </div>
+        </div>
+
+        <div id="summaryCards" class="grid" style="margin-top:12px"></div>
+
+        <div class="card" style="margin-top:12px">
+          <h4>Per-user totals</h4>
+          <table id="monthTable">
+            <thead><tr><th>User</th><th>Paid</th><th>Pending Verification</th><th>Pending</th></tr></thead>
+            <tbody><tr><td colspan="4">Select month to view</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ALL BILLS -->
+      <div id="tab-all" class="tabContent">
+        <div class="card">
+          <h3>All Bills</h3>
+          <div id="allBillsArea">Loading...</div>
+        </div>
+      </div>
+
+      <div id="statusBar"></div>
+    </div>
+  </div>
+
+  <!-- Supabase JS (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+
+  <!-- Application script -->
+  <script src="./script.js"></script>
+</body>
+</html>
+
