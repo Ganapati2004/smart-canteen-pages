@@ -28,7 +28,6 @@
 
 <script>
 (async function(){
-  // Read params
   const params = new URLSearchParams(location.search);
   const bill_ids = params.get('bill_ids') || '';
   const amount = params.get('amount') || '0';
@@ -48,21 +47,18 @@
   document.getElementById('greet').innerText = 'Hello ' + name;
   document.getElementById('info').innerHTML = `Amount due: <b>₹${amount}</b><br/>Bill IDs: ${bill_ids}`;
 
-  // Replace with your canteen VPA if available
-  const PAYEE_VPA = '9483174087@ptsbi'; // example: canteen@bank
+  // Replace with your canteen UPI VPA to auto-fill payment app
+  const PAYEE_VPA = 'YOUR_UPI_ID';
   const PAYEE_NAME = 'Canteen';
 
-  // build UPI uri (Android will open UPI apps with this URI)
   const upiUri = `upi://pay?pa=${encodeURIComponent(PAYEE_VPA)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent('Canteen bill')}`;
   document.getElementById('upiBtn').href = upiUri;
 
-  // When user clicks "I Have Paid" -> call confirm-payment function (server)
   document.getElementById('paidBtn').addEventListener('click', async function(){
     this.disabled = true;
     document.getElementById('status').innerText = 'Confirming payment — please wait...';
-
     try {
-      // Build the same canonical base that was signed by send-billing-notifications
+      // Build canonical base exactly as sender did (bill_ids, amount, user_id, month, nonce)
       const baseParams = new URLSearchParams();
       baseParams.set('bill_ids', bill_ids);
       baseParams.set('amount', amount);
@@ -71,13 +67,11 @@
       baseParams.set('nonce', nonce);
       const base = baseParams.toString();
 
-      // Confirm endpoint — your Supabase confirm-payment function
       const CONFIRM_URL = 'https://meaxdcjjcjugyceugwqt.functions.supabase.co/confirm-payment';
 
-      // Call confirm-payment with canonical params + sig (name omitted from base)
       const callUrl = `${CONFIRM_URL}?${base}&sig=${encodeURIComponent(sig)}`;
 
-      const res = await fetch(callUrl, { method: 'GET', credentials: 'omit' });
+      const res = await fetch(callUrl, { method: 'GET' });
       const text = await res.text();
       if (!res.ok) {
         document.getElementById('status').innerText = 'Confirm failed: ' + text;
@@ -91,7 +85,6 @@
       this.disabled = false;
     }
   });
-
 })();
 </script>
 </body>
