@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pay Canteen Bill</title>
+  <style>
+    body{font-family:system-ui;padding:20px;background:#f8fafc}
+    .card{max-width:640px;margin:24px auto;padding:20px;border-radius:12px;background:#fff;border:1px solid #e6eef8}
+    .btn{display:block;padding:12px;margin-top:10px;border-radius:8px;text-align:center;text-decoration:none;color:#fff}
+    .pay{background:#0d6efd}
+    .confirm{background:#16a34a}
+    .muted{color:#666;margin-top:8px}
+    .small{font-size:0.9rem;color:#444}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="greet">Hello</h2>
+    <p id="info">Loading payment information...</p>
+
+    <a id="upiBtn" class="btn pay" href="#" target="_self">Pay with UPI</a>
+    <button id="paidBtn" class="btn confirm">I Have Paid — Confirm</button>
+
+    <p id="status" class="muted"></p>
+    <p class="small">If you pay with UPI, complete the payment in the app and then return here and click "I Have Paid".</p>
+  </div>
+
+<script>
+(async function(){
+  // Read params
+  const params = new URLSearchParams(location.search);
+  const bill_ids = params.get('bill_ids') || '';
+  const amount = params.get('amount') || '0';
+  const user_id = params.get('user_id') || '';
+  const name = decodeURIComponent(params.get('name') || 'User');
+  const sig = params.get('sig') || '';
+  const month = params.get('month') || '';
+  const nonce = params.get('nonce') || '';
+
+  if (!bill_ids || !amount || !user_id || !sig) {
+    document.getElementById('info').innerText = 'Invalid or expired payment link.';
+    document.getElementById('upiBtn').style.display = 'none';
+    document.getElementById('paidBtn').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('greet').innerText = 'Hello ' + name;
+  document.getElementById('info').innerHTML = `Amount due: <b>₹${amount}</b><br/>Bill IDs: ${bill_ids}`;
+
+  // Replace with your canteen VPA if available
+  const PAYEE_VPA = '9483174087@ptsbi'; // example: canteen@bank
+  const PAYEE_NAME = 'Canteen';
+
+  // build UPI uri (Android will open UPI apps with this URI)
+  const upiUri = `upi://pay?pa=${encodeURIComponent(PAYEE_VPA)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent('Canteen bill')}`;
+  document.getElementById('upiBtn').href = upiUri;
+
+  // When user clicks "I Have Paid" -> call confirm-payment function (server)
+  document.getElementById('paidBtn').addEventListener('click', async function(){
+    this.disabled = true;
+    document.getElementById('status').innerText = 'Confirming payment — please wait...';
+
+    try {
+      // Build the same canonical base that was signed by send-billing-notifications
+      const baseParams = new URLSearchParams();
+      baseParams.set('bill_ids', bill_ids);
+      baseParams.set('amount', amount);
+      baseParams.set('user_id', user_id);
+      baseParams.set('month', month);
+      baseParams.set('nonce', nonce);
+      const base = baseParams.toString();
+
+      // Confirm endpoint — your Supabase confirm-payment function
+      const CONFIRM_URL = 'https://meaxdcjjcjugyceugwqt.functions.supabase.co/confirm-payment';
+
+      // Call confirm-payment with canonical params + sig (name omitted from base)
+      const callUrl = `${CONFIRM_URL}?${base}&sig=${encodeURIComponent(sig)}`;
+
+      const res = await fetch(callUrl, { method: 'GET', credentials: 'omit' });
+      const text = await res.text();
+      if (!res.ok) {
+        document.getElementById('status').innerText = 'Confirm failed: ' + text;
+      } else {
+        document.getElementById('status').innerText = '✅ Payment recorded. Waiting for admin verification.';
+        document.getElementById('paidBtn').style.display = 'none';
+      }
+    } catch (err) {
+      document.getElementById('status').innerText = 'Network error: ' + err.message;
+    } finally {
+      this.disabled = false;
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
