@@ -48,7 +48,7 @@
   document.getElementById('info').innerHTML = `Amount due: <b>₹${amount}</b><br/>Bill IDs: ${bill_ids}`;
 
   // Replace with your canteen UPI VPA to auto-fill payment app
-  const PAYEE_VPA = 'YOUR_UPI_ID';
+  const PAYEE_VPA = '9483174087@ptsbi';
   const PAYEE_NAME = 'Canteen';
 
   const upiUri = `upi://pay?pa=${encodeURIComponent(PAYEE_VPA)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${encodeURIComponent(amount)}&cu=INR&tn=${encodeURIComponent('Canteen bill')}`;
@@ -89,3 +89,4 @@
 </script>
 </body>
 </html>
+
